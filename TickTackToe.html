@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Tic-Tac-Toe</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: yellow;
+    }
+
+    header {
+      background-color: orange;
+      color: #fff;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 36px;
+    }
+
+    table {
+      width: 300px;
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    td {
+      width: 100px;
+      height: 100px;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 36px;
+      cursor: pointer;
+      background-color: orange;
+      color: #fff;
+      transition: background-color 0.3s;
+    }
+
+    td:hover {
+      background-color: yellow;
+    }
+
+    button {
+      display: block;
+      margin: 20px auto;
+      padding: 10px 20px;
+      font-size: 18px;
+      background-color: orange;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: yellow;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tic-Tac-Toe</h1>
+  <table>
+    <tr>
+      <td onclick="makeMove(0, 0)"></td>
+      <td onclick="makeMove(0, 1)"></td>
+      <td onclick="makeMove(0, 2)"></td>
+    </tr>
+    <tr>
+      <td onclick="makeMove(1, 0)"></td>
+      <td onclick="makeMove(1, 1)"></td>
+      <td onclick="makeMove(1, 2)"></td>
+    </tr>
+    <tr>
+      <td onclick="makeMove(2, 0)"></td>
+      <td onclick="makeMove(2, 1)"></td>
+      <td onclick="makeMove(2, 2)"></td>
+    </tr>
+  </table>
+  <button onclick="resetGame()">Reset Game</button>
+  <button onclick="toggleBotMode()">Toggle Bot Mode</button>
+
+  <script>
+    var currentPlayer = "X";
+    var gameEnded = false;
+    var isBotMode = false;
+    var board = [
+      ["", "", ""],
+      ["", "", ""],
+      ["", "", ""]
+    ];
+    var scores = {
+      X: 0,
+      O: 0
+    };
+    var difficultyLevels = {
+      easy: 1,
+      medium: 3,
+      hard: 5
+    };
+    var difficulty = difficultyLevels.medium;
+
+    function makeMove(row, col) {
+      if (!gameEnded && board[row][col] === "") {
+        board[row][col] = currentPlayer;
+        document.getElementsByTagName("td")[row * 3 + col].innerHTML = currentPlayer;
+
+        if (checkWin(currentPlayer)) {
+          endGame(currentPlayer + " wins!");
+          scores[currentPlayer]++;
+          updateScores();
+        } else if (checkDraw()) {
+          endGame("It's a draw!");
+        } else {
+          currentPlayer = currentPlayer === "X" ? "O" : "X";
+          if (isBotMode && currentPlayer === "O") {
+            setTimeout(makeBotMove, 500);
+          }
+        }
+      }
+    }
+
+    function makeBotMove() {
+      var bestScore = currentPlayer === "X" ? -Infinity : Infinity;
+      var bestMove;
+
+      var availableMoves = getAvailableMoves();
+      for (var i = 0; i < availableMoves.length; i++) {
+        var move = availableMoves[i];
+        board[move.row][move.col] = currentPlayer;
+        var score = minimax(board, 0, false);
+        board[move.row][move.col] = "";
+
+        if (currentPlayer === "X") {
+          if (score > bestScore) {
+            bestScore = score;
+            bestMove = move;
+          }
+        } else {
+          if (score < bestScore) {
+            bestScore = score;
+            bestMove = move;
+          }
+        }
+      }
+
+      makeMove(bestMove.row, bestMove.col);
+    }
+
+    function minimax(board, depth, isMaximizingPlayer) {
+      if (checkWin("X")) {
+        return -1;
+      }
+      if (checkWin("O")) {
+        return 1;
+      }
+      if (checkDraw()) {
+        return 0;
+      }
+
+      if (isMaximizingPlayer) {
+        var bestScore = -Infinity;
+        var availableMoves = getAvailableMoves();
+
+        for (var i = 0; i < availableMoves.length; i++) {
+          var move = availableMoves[i];
+          board[move.row][move.col] = "O";
+          var score = minimax(board, depth + 1, false);
+          board[move.row][move.col] = "";
+          bestScore = Math.max(score, bestScore);
+        }
+
+        return bestScore;
+      } else {
+        var bestScore = Infinity;
+        var availableMoves = getAvailableMoves();
+
+        for (var i = 0; i < availableMoves.length; i++) {
+          var move = availableMoves[i];
+          board[move.row][move.col] = "X";
+          var score = minimax(board, depth + 1, true);
+          board[move.row][move.col] = "";
+          bestScore = Math.min(score, bestScore);
+        }
+
+        return bestScore;
+      }
+    }
+
+    function getAvailableMoves() {
+      var moves = [];
+      for (var row = 0; row < 3; row++) {
+        for (var col = 0; col < 3; col++) {
+          if (board[row][col] === "") {
+            moves.push({ row: row, col: col });
+          }
+        }
+      }
+      return moves;
+    }
+
+    function checkWin(player) {
+      for (var i = 0; i < 3; i++) {
+        if (
+          board[i][0] === player &&
+          board[i][1] === player &&
+          board[i][2] === player
+        ) {
+          return true;
+        }
+        if (
+          board[0][i] === player &&
+          board[1][i] === player &&
+          board[2][i] === player
+        ) {
+          return true;
+        }
+      }
+      if (
+        board[0][0] === player &&
+        board[1][1] === player &&
+        board[2][2] === player
+      ) {
+        return true;
+      }
+      if (
+        board[2][0] === player &&
+        board[1][1] === player &&
+        board[0][2] === player
+      ) {
+        return true;
+      }
+      return false;
+    }
+
+    function checkDraw() {
+      for (var i = 0; i < 3; i++) {
+        for (var j = 0; j < 3; j++) {
+          if (board[i][j] === "") {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function endGame(message) {
+      alert(message);
+      gameEnded = true;
+    }
+
+    function resetGame() {
+      board = [
+        ["", "", ""],
+        ["", "", ""],
+        ["", "", ""]
+      ];
+      var cells = document.getElementsByTagName("td");
+      for (var i = 0; i < cells.length; i++) {
+        cells[i].innerHTML = "";
+      }
+      currentPlayer = "X";
+      gameEnded = false;
+    }
+
+    function toggleBotMode() {
+      isBotMode = !isBotMode;
+      if (isBotMode && currentPlayer === "O") {
+        setTimeout(makeBotMove, 500);
+      }
+    }
+
+    function updateScores() {
+      document.getElementById("scoreX").textContent = scores["X"];
+      document.getElementById("scoreO").textContent = scores["O"];
+    }
+
+    // Additional Features
+
+    function updateDifficultyLevel(selectedLevel) {
+      difficulty = difficultyLevels[selectedLevel];
+    }
+
+    function applyAnimation(elementId, animationClass) {
+      var element = document.getElementById(elementId);
+      element.classList.add(animationClass);
+      element.addEventListener("animationend", function () {
+        element.classList.remove(animationClass);
+      });
+    }
+  </script>
+</body>
+</html>
