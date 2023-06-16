@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>2D Exploration and Treasure Hunt Game</title>
+  <style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+}
+
+header {
+  background-color: #ffcc00;
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+
+h1 {
+  margin: 0;
+  font-size: 36px;
+}
+
+nav {
+  background-color: #ffcc00;
+  padding: 10px;
+  text-align: center;
+}
+
+nav button {
+  text-decoration: none;
+  color: #fff;
+  margin: 10px;
+  background-color: #ff9933;
+  border: none;
+  cursor: pointer;
+  padding: 10px 20px;
+  font-size: 18px;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+}
+
+nav button:hover {
+  background-color: #ff6600;
+}
+
+section {
+  padding: 20px;
+  text-align: center;
+}
+
+h2 {
+  font-size: 28px;
+  color: #ff6600;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 18px;
+  color: #333;
+  line-height: 1.5;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+li {
+  margin: 10px;
+  font-size: 20px;
+}
+
+footer {
+  background-color: #ffcc00;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+}
+
+  </style>
+</head>
+<body>
+  <h1>2D Exploration and Treasure Hunt Game</h1>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="message"></div>
+
+  <script>
+    // Get the game canvas
+    var canvas = document.getElementById("gameCanvas");
+    var ctx = canvas.getContext("2d");
+
+    // Constants
+    var blockSize = 50;
+    var gridSize = Math.min(canvas.width, canvas.height) / blockSize;
+    var obstacleCount = 10; // Number of obstacles per level
+
+    // Player object
+    var player = {
+      x: Math.floor(gridSize / 2) * blockSize,
+      y: Math.floor(gridSize / 2) * blockSize,
+      width: blockSize,
+      height: blockSize
+    };
+
+    // Treasure object
+    var treasure = {
+      x: Math.floor(Math.random() * gridSize) * blockSize,
+      y: Math.floor(Math.random() * gridSize) * blockSize,
+      width: blockSize,
+      height: blockSize,
+      found: false
+    };
+
+    // Obstacles array
+    var obstacles = [];
+
+    // Message element
+    var messageElement = document.getElementById("message");
+
+    // Timer variables
+    var timerElement = document.createElement("div");
+    var timerInterval;
+    var timeLimit = 60; // Time limit in seconds
+    var remainingTime = timeLimit;
+
+    // Score variables
+    var scoreElement = document.createElement("div");
+    var score = 0;
+
+    // Power-up variables
+    var powerUp = {
+      x: Math.floor(Math.random() * gridSize) * blockSize,
+      y: Math.floor(Math.random() * gridSize) * blockSize,
+      width: blockSize,
+      height: blockSize,
+      active: false
+    };
+
+    // Sound effects and music
+    var moveSound = new Audio("move.wav");
+    var treasureSound = new Audio("treasure.wav");
+    var powerUpSound = new Audio("powerup.wav");
+    var backgroundMusic = new Audio("background_music.mp3");
+    backgroundMusic.loop = true;
+
+    // Event listeners
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
+
+    function handleKeyDown(event) {
+      var keyPressed = event.key;
+
+      // Calculate the new position based on block grid movement
+      var newX = player.x;
+      var newY = player.y;
+
+      if (keyPressed === "ArrowUp" || keyPressed === "w") {
+        newY -= blockSize;
+      } else if (keyPressed === "ArrowDown" || keyPressed === "s") {
+        newY += blockSize;
+      } else if (keyPressed === "ArrowLeft" || keyPressed === "a") {
+        newX -= blockSize;
+      } else if (keyPressed === "ArrowRight" || keyPressed === "d") {
+        newX += blockSize;
+      }
+
+      // Move the player if the new position is valid
+      if (isValidPosition(newX, newY)) {
+        player.x = newX;
+        player.y = newY;
+        moveSound.play();
+
+        // Check if the player found the treasure
+        if (!treasure.found && checkCollision(player, treasure)) {
+          treasure.found = true;
+          messageElement.style.display = "block";
+          messageElement.innerHTML = "Congratulations! You found the treasure!";
+          treasureSound.play();
+          resetGame();
+        }
+
+        // Check if the player activated a power-up
+        if (!powerUp.active && checkCollision(player, powerUp)) {
+          powerUp.active = true;
+          powerUpSound.play();
+          score += 10;
+          updateScore();
+          activatePowerUp();
+        }
+      }
+    }
+
+    function handleKeyUp(event) {
+      var keyPressed = event.key;
+
+      // Stop the player's movement sound when the key is released
+      if (
+        keyPressed === "ArrowUp" ||
+        keyPressed === "ArrowDown" ||
+        keyPressed === "ArrowLeft" ||
+        keyPressed === "ArrowRight" ||
+        keyPressed === "w" ||
+        keyPressed === "s" ||
+        keyPressed === "a" ||
+        keyPressed === "d"
+      ) {
+        moveSound.pause();
+        moveSound.currentTime = 0;
+      }
+    }
+
+    // Function to check if a position is valid
+    function isValidPosition(x, y) {
+      if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
+        return false;
+      }
+
+      // Check for collision with obstacles
+      for (var i = 0; i < obstacles.length; i++) {
+        if (checkCollision({ x: x, y: y, width: blockSize, height: blockSize }, obstacles[i])) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    // Function to check collision between two objects
+    function checkCollision(obj1, obj2) {
+      return (
+        obj1.x < obj2.x + obj2.width &&
+        obj1.x + obj1.width > obj2.x &&
+        obj1.y < obj2.y + obj2.height &&
+        obj1.y + obj1.height > obj2.y
+      );
+    }
+
+    // Function to reset the game when the treasure is found or time runs out
+    function resetGame() {
+      clearInterval(timerInterval);
+      remainingTime = timeLimit;
+      powerUp.active = false;
+      score = 0;
+      updateScore();
+
+      player.x = Math.floor(gridSize / 2) * blockSize;
+      player.y = Math.floor(gridSize / 2) * blockSize;
+
+      treasure.x = Math.floor(Math.random() * gridSize) * blockSize;
+      treasure.y = Math.floor(Math.random() * gridSize) * blockSize;
+      treasure.found = false;
+
+      generateObstacles();
+      generatePowerUp();
+
+      messageElement.style.display = "none";
+
+      startTimer();
+    }
+
+    // Function to start the game timer
+    function startTimer() {
+      timerElement.innerHTML = "Time left: " + remainingTime + "s";
+      document.body.appendChild(timerElement);
+
+      timerInterval = setInterval(function() {
+        remainingTime--;
+        timerElement.innerHTML = "Time left: " + remainingTime + "s";
+
+        if (remainingTime === 0) {
+          clearInterval(timerInterval);
+          messageElement.style.display = "block";
+          messageElement.innerHTML = "Time's up! Game over.";
+          resetGame();
+        }
+      }, 1000);
+    }
+
+    // Function to generate random obstacles
+    function generateObstacles() {
+      obstacles = [];
+
+      for (var i = 0; i < obstacleCount; i++) {
+        var obstacle = {
+          x: Math.floor(Math.random() * gridSize) * blockSize,
+          y: Math.floor(Math.random() * gridSize) * blockSize,
+          width: blockSize,
+          height: blockSize
+        };
+
+        // Avoid placing obstacles on player, treasure, or power-up
+        if (
+          checkCollision(obstacle, player) ||
+          checkCollision(obstacle, treasure) ||
+          checkCollision(obstacle, powerUp)
+        ) {
+          i--;
+        } else {
+          obstacles.push(obstacle);
+        }
+      }
+    }
+
+    // Function to generate a random power-up
+    function generatePowerUp() {
+      powerUp.x = Math.floor(Math.random() * gridSize) * blockSize;
+      powerUp.y = Math.floor(Math.random() * gridSize) * blockSize;
+    }
+
+    // Function to activate the power-up
+    function activatePowerUp() {
+      setTimeout(function() {
+        powerUp.active = false;
+        generatePowerUp();
+      }, 5000);
+    }
+
+    // Function to update the score display
+    function updateScore() {
+      scoreElement.innerHTML = "Score: " + score;
+    }
+
+    // Game loop
+    function gameLoop() {
+      // Clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw the player
+      ctx.fillStyle = "blue";
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+
+      // Draw the treasure
+      if (!treasure.found) {
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(treasure.x, treasure.y, treasure.width, treasure.height);
+      }
+
+      // Draw the obstacles
+      ctx.fillStyle = "black";
+      for (var i = 0; i < obstacles.length; i++) {
+        ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+      }
+
+      // Draw the power-up
+      if (!powerUp.active) {
+        ctx.fillStyle = "green";
+        ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+      }
+
+      // Request the next frame
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Initialize the game
+    resetGame();
+    updateScore();
+
+    // Start the game loop
+    gameLoop();
+
+    // Start the background music
+    backgroundMusic.play();
+  </script>
+</body>
+</html>
