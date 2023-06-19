@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mini Golf Game</title>
+    <style>
+        #game-container {
+            width: 500px;
+            height: 300px;
+            position: relative;
+            border: 1px solid black;
+        }
+        #ball {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            background-color: red;
+            border-radius: 50%;
+            transition: 0.1s;
+        }
+        .hole {
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            background-color: black;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mini Golf Game</h1>
+    <div id="game-container">
+        <div id="ball"></div>
+        <div class="hole" style="top: 100px; left: 400px;"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const ball = document.getElementById('ball');
+            const hole = document.querySelector('.hole');
+            const gameContainer = document.getElementById('game-container');
+
+            let ballX = 0;
+            let ballY = 0;
+
+            gameContainer.addEventListener('mousemove', (event) => {
+                const rect = gameContainer.getBoundingClientRect();
+                ballX = event.clientX - rect.left - ball.offsetWidth / 2;
+                ballY = event.clientY - rect.top - ball.offsetHeight / 2;
+                ball.style.left = ballX + 'px';
+                ball.style.top = ballY + 'px';
+            });
+
+            gameContainer.addEventListener('click', () => {
+                const holeRect = hole.getBoundingClientRect();
+                const ballRect = ball.getBoundingClientRect();
+
+                if (isColliding(holeRect, ballRect)) {
+                    alert('You won!');
+                } else {
+                    alert('Try again!');
+                }
+            });
+
+            function isColliding(rect1, rect2) {
+                return !(rect1.right < rect2.left || rect1.left > rect2.right || rect1.bottom < rect2.top || rect1.top > rect2.bottom);
+            }
+        });
+    </script>
+</body>
+</html>
