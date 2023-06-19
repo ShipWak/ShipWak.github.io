@@ -35,6 +35,7 @@
             width: 100%;
             height: 10px;
             background-color: blue;
+            transition: width 0.1s linear;
         }
         #score {
             font-size: 18px;
@@ -68,6 +69,8 @@
             let pullBackStartX = 0;
             let pullBackStartY = 0;
             let power = 0;
+            let velocityX = 0;
+            let velocityY = 0;
             let score = 0;
             let level = 1;
 
@@ -123,7 +126,10 @@
                             resetLevel();
                         }
                     } else {
-                        alert('Try again!');
+                        velocityX = (pullBackStartX - event.clientX) / 10;
+                        velocityY = (pullBackStartY - event.clientY) / 10;
+
+                        moveBall();
                     }
                 }
             }
@@ -132,11 +138,29 @@
                 return !(rect1.right < rect2.left || rect1.left > rect2.right || rect1.bottom < rect2.top || rect1.top > rect2.bottom);
             }
 
+            function moveBall() {
+                const interval = setInterval(() => {
+                    ballX += velocityX;
+                    ballY += velocityY;
+                    velocityX *= 0.99;
+                    velocityY *= 0.99;
+
+                    ball.style.left = ballX + 'px';
+                    ball.style.top = ballY + 'px';
+
+                    if (velocityX === 0 && velocityY === 0) {
+                        clearInterval(interval);
+                    }
+                }, 10);
+            }
+
             function resetBall() {
                 ballX = 0;
                 ballY = 0;
                 ball.style.left = ballX + 'px';
                 ball.style.top = ballY + 'px';
+                velocityX = 0;
+                velocityY = 0;
             }
 
             function resetLevel() {
