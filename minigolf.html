@@ -8,6 +8,7 @@
             height: 300px;
             position: relative;
             border: 1px solid black;
+            cursor: pointer;
         }
         #ball {
             width: 20px;
@@ -41,25 +42,55 @@
 
             let ballX = 0;
             let ballY = 0;
+            let isPullingBack = false;
+            let pullBackStartX = 0;
+            let pullBackStartY = 0;
 
-            gameContainer.addEventListener('mousemove', (event) => {
+            gameContainer.addEventListener('mousedown', startPullBack);
+            gameContainer.addEventListener('mousemove', updatePullBack);
+            gameContainer.addEventListener('mouseup', releaseBall);
+
+            function startPullBack(event) {
+                isPullingBack = true;
                 const rect = gameContainer.getBoundingClientRect();
-                ballX = event.clientX - rect.left - ball.offsetWidth / 2;
-                ballY = event.clientY - rect.top - ball.offsetHeight / 2;
-                ball.style.left = ballX + 'px';
-                ball.style.top = ballY + 'px';
-            });
+                pullBackStartX = event.clientX - rect.left;
+                pullBackStartY = event.clientY - rect.top;
+            }
 
-            gameContainer.addEventListener('click', () => {
-                const holeRect = hole.getBoundingClientRect();
-                const ballRect = ball.getBoundingClientRect();
+            function updatePullBack(event) {
+                if (isPullingBack) {
+                    const rect = gameContainer.getBoundingClientRect();
+                    const currentX = event.clientX - rect.left;
+                    const currentY = event.clientY - rect.top;
 
-                if (isColliding(holeRect, ballRect)) {
-                    alert('You won!');
-                } else {
-                    alert('Try again!');
+                    const distanceX = currentX - pullBackStartX;
+                    const distanceY = currentY - pullBackStartY;
+
+                    ballX = Math.max(0, ballX + distanceX);
+                    ballY = Math.max(0, ballY + distanceY);
+
+                    ball.style.left = ballX + 'px';
+                    ball.style.top = ballY + 'px';
+
+                    pullBackStartX = currentX;
+                    pullBackStartY = currentY;
                 }
-            });
+            }
+
+            function releaseBall() {
+                if (isPullingBack) {
+                    isPullingBack = false;
+
+                    const holeRect = hole.getBoundingClientRect();
+                    const ballRect = ball.getBoundingClientRect();
+
+                    if (isColliding(holeRect, ballRect)) {
+                        alert('You won!');
+                    } else {
+                        alert('Try again!');
+                    }
+                }
+            }
 
             function isColliding(rect1, rect2) {
                 return !(rect1.right < rect2.left || rect1.left > rect2.right || rect1.bottom < rect2.top || rect1.top > rect2.bottom);
